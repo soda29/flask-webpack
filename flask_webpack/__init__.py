@@ -1,7 +1,10 @@
 import json
 
 from flask import current_app
-
+try:
+    import simplejson as json
+except ImportError:
+    import json
 
 class Webpack(object):
     def __init__(self, app=None):
@@ -77,13 +80,22 @@ class Webpack(object):
         :return: Script tag(s) containing the asset
         """
         tags = []
-
         for arg in args:
-            asset_path = self.asset_url_for('{0}.js'.format(arg))
-            if asset_path:
-                tags.append('<script src="{0}"></script>'.format(asset_path))
+            assets = self.get_assets(arg+'.js')
+            if not assets:
+                break
+            if isinstance(assets, basestring):
+                assets = [assets]
+
+            for a in assets:
+                tags.append('<script src="{0}"></script>'.format(self.asset_url_for(a)))
 
         return '\n'.join(tags)
+
+    def get_assets(self, asset):
+        for key in self.assets:
+            if key == asset:
+                return self.assets[key]
 
     def stylesheet_tag(self, *args):
         """
@@ -113,9 +125,6 @@ class Webpack(object):
         """
         if '//' in asset:
             return asset
-
-        for key in self.assets:
-            if key == asset:
-                return '{0}{1}'.format(self.assets_url, self.assets[key])
+        return '{0}{1}'.format(self.assets_url, asset)
 
         return None
